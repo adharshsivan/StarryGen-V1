@@ -713,11 +713,15 @@ export const generateImageFromBlocks = async (
 
       let changeFocus = "";
       if (changeDescription && changeDescription !== 'Regenerated') {
-          changeFocus = `USER ACTION: ${changeDescription}. IMPORTANT: You MUST apply this change visibly.`;
+          changeFocus = `USER ACTION: ${changeDescription}.`;
           
           // Logic to preserve background if not modified (Addresses the "Background Consistency" issue)
           if (!changeDescription.toLowerCase().includes('background')) {
-              changeFocus += ` PRESERVE the existing background/environment from the image. Only modify the ${changeDescription.replace('Modified ', '').replace('Added ', '')}.`;
+              // Relaxed restriction: "Update X, but keep background consistent" instead of strict "Only modify X"
+              // This fixes the issue where strict negative constraints caused the model to refuse edits on the first try.
+              changeFocus += ` The user has explicitly modified the ${changeDescription.replace('Modified ', '').replace('Added ', '')}. Update this part of the image to match the description, while keeping the background consistent.`;
+          } else {
+              changeFocus += ` IMPORTANT: You MUST apply this change visibly.`;
           }
       }
 
