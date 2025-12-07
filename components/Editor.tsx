@@ -557,7 +557,19 @@ export const Editor: React.FC<EditorProps> = ({
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const img = await generateImageFromBlocks(blocks, seed, aspectRatio, baseStyle, generatedImage, useBaseStyle, globalBlocks);
+      const prevBlocks = history.length > 0 ? history[0].blocks : [];
+      const changeSummary = getChangeSummary(prevBlocks, blocks);
+
+      const img = await generateImageFromBlocks(
+          blocks, 
+          seed, 
+          aspectRatio, 
+          baseStyle, 
+          generatedImage, 
+          useBaseStyle, 
+          globalBlocks,
+          changeSummary
+      );
       
       if (img) {
           let effectiveForGen = [...blocks];
@@ -583,9 +595,8 @@ export const Editor: React.FC<EditorProps> = ({
           setGeneratedImage(finalImg);
           setLabsBaseImage(finalImg); 
           
-          const prevBlocks = history.length > 0 ? history[0].blocks : [];
-          const actionLabel = getChangeSummary(prevBlocks, blocks);
-          addToHistory(actionLabel);
+          // Use the summary for history label as well
+          addToHistory(changeSummary);
       }
     } catch (e: any) {
       console.error("Generation Error:", e);
@@ -641,7 +652,18 @@ export const Editor: React.FC<EditorProps> = ({
         setQuickEditInstruction('');
         
         setIsGenerating(true);
-        const img = await generateImageFromBlocks(newBlocks, seed, aspectRatio, baseStyle, generatedImage, useBaseStyle, globalBlocks);
+        // Also pass instruction as change summary for quick edit
+        const img = await generateImageFromBlocks(
+            newBlocks, 
+            seed, 
+            aspectRatio, 
+            baseStyle, 
+            generatedImage, 
+            useBaseStyle, 
+            globalBlocks,
+            quickEditInstruction
+        );
+
         if (img) {
              setGeneratedImage(img);
              setLabsBaseImage(img);

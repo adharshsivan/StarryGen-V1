@@ -678,7 +678,8 @@ export const generateImageFromBlocks = async (
     baseStyle: string = '',
     previousImageBase64: string | null = null,
     useBaseStyle: boolean = true,
-    globalBlocks: BlockState[] = []
+    globalBlocks: BlockState[] = [],
+    changeDescription: string = ''
 ): Promise<string | null> => {
   const apiKey = getEffectiveApiKey();
   if (!apiKey) throw new Error("API_KEY_MISSING");
@@ -710,7 +711,18 @@ export const generateImageFromBlocks = async (
           referenceInstruction = "1. CRITICAL: For subjects with a 'REFERENCE IMAGE' provided above, you MUST prioritize the facial features, identity, and clothing of that REFERENCE IMAGE over the 'IMAGE TO EDIT'. Use the 'IMAGE TO EDIT' only for composition and pose, but swap the identity to match the REFERENCE IMAGE.";
       }
 
+      let changeFocus = "";
+      if (changeDescription && changeDescription !== 'Regenerated') {
+          changeFocus = `USER ACTION: ${changeDescription}. IMPORTANT: You MUST apply this change visibly.`;
+          
+          // Logic to preserve background if not modified (Addresses the "Background Consistency" issue)
+          if (!changeDescription.toLowerCase().includes('background')) {
+              changeFocus += ` PRESERVE the existing background/environment from the image. Only modify the ${changeDescription.replace('Modified ', '').replace('Added ', '')}.`;
+          }
+      }
+
       finalPrompt = `Edit the provided 'IMAGE TO EDIT' to match this description: ${structuredPrompt}. 
+      ${changeFocus}
       ${NEGATIVE_PROMPT}
       
       INSTRUCTIONS:
