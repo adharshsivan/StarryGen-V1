@@ -1,0 +1,5 @@
+{
+  "name": "StarryGen",
+  "description": "A modular, visual-first AI creativity tool for constructing complex image generation prompts with structured blocks.",
+  "requestFramePermissions": []
+}
