@@ -704,21 +704,31 @@ export const generateImageFromBlocks = async (
           backgroundDescription = `${type} ${env} at ${time}`;
       }
 
+      // --- DYNAMIC INSTRUCTION LOGIC ---
+      const isSubjectModified = changeDescription.toLowerCase().includes('subject') || changeDescription.toLowerCase().includes('added') || changeDescription.toLowerCase().includes('removed');
+      const isBackgroundModified = changeDescription.toLowerCase().includes('background') || changeDescription.toLowerCase().includes('setting') || changeDescription.toLowerCase().includes('environment');
+
       let referenceInstruction = "1. Maintain the Subject Identity and Poses from the provided IMAGE TO EDIT (unless instructed otherwise).";
-      
-      // If we have explicit references, we need to instruct the model to prioritize those for identity
       if (hasReferenceImages) {
-          referenceInstruction = "1. CRITICAL: For subjects with a 'REFERENCE IMAGE' provided above, you MUST prioritize the facial features, identity, and clothing of that REFERENCE IMAGE over the 'IMAGE TO EDIT'. Use the 'IMAGE TO EDIT' only for composition and pose, but swap the identity to match the REFERENCE IMAGE.";
+          referenceInstruction = "1. CRITICAL: For subjects with a 'REFERENCE IMAGE' provided above, you MUST prioritize the facial features, identity, and clothing of that REFERENCE IMAGE over the 'IMAGE TO EDIT'.";
+      } else if (isSubjectModified) {
+          // If user explicitly changed the subject, FORCE the model to ignore the old subject pixels
+          referenceInstruction = "1. CRITICAL: The User has MODIFIED or ADDED a Subject. IGNORE the subject appearance in the 'IMAGE TO EDIT'. GENERATE the new/modified subject described in the prompt from scratch.";
+      }
+
+      let backgroundInstruction = "2. REPLACE the Background/Environment if the text description differs from the image.";
+      if (!isBackgroundModified) {
+           // If user did NOT touch the background, force preservation
+           backgroundInstruction = "2. PRESERVE the Background/Environment style, location, and lighting from the 'IMAGE TO EDIT'. Do NOT replace the background unless it physically conflicts with the new Subject.";
+      } else {
+           backgroundInstruction = `2. REPLACE the Background/Environment. The text description "${backgroundDescription}" takes PRIORITY over the image background.`;
       }
 
       let changeFocus = "";
       if (changeDescription && changeDescription !== 'Regenerated') {
           changeFocus = `USER ACTION: ${changeDescription}.`;
           
-          // Logic to preserve background if not modified (Addresses the "Background Consistency" issue)
-          if (!changeDescription.toLowerCase().includes('background')) {
-              // Relaxed restriction: "Update X, but keep background consistent" instead of strict "Only modify X"
-              // This fixes the issue where strict negative constraints caused the model to refuse edits on the first try.
+          if (!isBackgroundModified) {
               changeFocus += ` The user has explicitly modified the ${changeDescription.replace('Modified ', '').replace('Added ', '')}. Update this part of the image to match the description, while keeping the background consistent.`;
           } else {
               changeFocus += ` IMPORTANT: You MUST apply this change visibly.`;
@@ -731,9 +741,8 @@ export const generateImageFromBlocks = async (
       
       INSTRUCTIONS:
       ${referenceInstruction}
-      2. REPLACE the Background/Environment if the text description differs from the image. The text description "${backgroundDescription}" takes PRIORITY over the image background.
-      3. If the text says "Forest" and image is "City", make it a Forest.
-      4. Apply the Visual Style defined.
+      ${backgroundInstruction}
+      3. Apply the Visual Style defined.
       Render quality: Ultra-realistic, 8k.`;
   } else {
       finalPrompt = `${structuredPrompt} \n${NEGATIVE_PROMPT} \nRender quality: Ultra-realistic, 8k, highly detailed.`;
