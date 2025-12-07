@@ -250,7 +250,7 @@ export const generateContextSuggestions = async (contextDescription: string): Pr
         Context / Current State: "${contextDescription}"
 
         Task: Provide creative, context-aware suggestions for the following fields in a visual generation tool.
-        Avoid generic answers. 
+        Avoid generic answers. Keep suggestions concise (1-5 words max).
         Example:
         - If context is "Robot Detective in Cyberpunk City", suggestions should contain "Neon-lit trenchcoat", "Plating" for attire.
         

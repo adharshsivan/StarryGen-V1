@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Project, StarryFile, BlockType, BlockState, SectionState } from '../types';
 import * as Icons from 'lucide-react';
@@ -404,7 +403,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
           </div>
         )}
         
-        {/* STYLING TAB - Refined "Master Editor" Layout */}
+        {/* STYLING TAB - Refined "Global Editor" Layout */}
         {activeTab === 'styling' && (
             <div className="flex h-full animate-fade-in overflow-hidden">
                 {/* Global Layer List */}
@@ -412,7 +411,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
                     <div className="p-4 border-b border-border bg-surfaceHighlight/30 flex items-center justify-between">
                          <div className="flex items-center gap-2">
                             <Icons.Layers size={14} className="text-text-muted"/>
-                            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Master Blocks</h3>
+                            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Global Blocks</h3>
                          </div>
                          <Button size="sm" variant="icon" onClick={() => setIsAddGlobalModalOpen(true)}>
                              <Icons.Plus size={16} />
@@ -485,7 +484,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
                                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-white/10 to-transparent border border-white/10 mx-auto mb-4 flex items-center justify-center">
                                         <Icons.Palette size={32} className="text-white/50" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-white mb-2">Master Property Editor</h3>
+                                    <h3 className="text-lg font-bold text-white mb-2">Global Property Editor</h3>
                                     <p className="text-sm text-text-dim max-w-sm mx-auto">
                                         Editing properties for <span className="text-white font-mono">{selectedGlobalBlock.customLabel}</span>.
                                         <br/>Changes propagate immediately.
@@ -514,7 +513,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
                             <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center animate-pulse">
                                 <Icons.MousePointer2 size={32} className="opacity-20" />
                             </div>
-                            <p className="font-medium text-text-muted">Select a Master Block to configure</p>
+                            <p className="font-medium text-text-muted">Select a Global Block to configure</p>
                         </div>
                     )}
                 </div>
@@ -622,6 +621,17 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
                 </div>
             </div>
         )}
+
+        {/* TEAM TAB - Placeholder */}
+        {activeTab === 'team' && (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in text-center opacity-60">
+                 <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                     <Icons.Construction size={32} className="text-text-dim" />
+                 </div>
+                 <h2 className="text-lg font-bold text-white mb-2">It is under build.</h2>
+                 <p className="text-sm text-text-muted">Team collaboration features are coming for Pro users.</p>
+            </div>
+        )}
         
         {/* SETTINGS TAB */}
         {activeTab === 'settings' && (
@@ -647,17 +657,6 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
                          </div>
                      </div>
                  </div>
-            </div>
-        )}
-        
-        {/* TEAM TAB */}
-        {activeTab === 'team' && (
-            <div className="flex-1 flex flex-col items-center justify-center animate-fade-in p-8">
-                <div className="text-center text-text-dim">
-                    <Icons.Users size={48} className="mx-auto mb-4 opacity-50" strokeWidth={1} />
-                    <h3 className="text-lg font-medium text-text-muted">Team Collaboration</h3>
-                    <p className="text-sm mt-2">Coming soon to StarryGen Pro.</p>
-                </div>
             </div>
         )}
 

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import * as Icons from 'lucide-react';
 
@@ -352,7 +353,8 @@ export const HybridInput: React.FC<{
                         <button
                             key={s}
                             onClick={() => onChange(s)}
-                            className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                            title={s}
+                            className={`px-2 py-1 text-[10px] rounded border transition-all max-w-[150px] truncate ${
                                 value === s 
                                 ? 'bg-primary-500/20 border-primary-500/50 text-primary-300 shadow-sm' 
                                 : 'bg-white/5 border-white/5 text-text-muted hover:bg-white/10 hover:border-white/10 hover:text-white'
@@ -428,13 +430,15 @@ export const TagInput: React.FC<{
                             <button
                                 key={s}
                                 onClick={() => isSelected ? removeTag(s) : addTag(s)}
-                                className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                                title={s}
+                                className={`px-2 py-1 text-[10px] rounded border transition-all max-w-[160px] inline-flex items-center justify-center ${
                                     isSelected
                                     ? 'bg-primary-500/20 border-primary-500/50 text-primary-300 shadow-sm opacity-50' 
                                     : 'bg-white/5 border-white/5 text-text-muted hover:bg-white/10 hover:border-white/10 hover:text-white'
                                 }`}
                             >
-                                {isSelected ? (<span><Icons.Check size={8} className="inline mr-1"/>{s}</span>) : s}
+                                {isSelected && <Icons.Check size={8} className="mr-1 shrink-0"/>}
+                                <span className="truncate">{s}</span>
                             </button>
                         )
                     })}
@@ -735,7 +739,8 @@ export const DetailedItemList: React.FC<{
                                 <button
                                     key={s}
                                     onClick={() => addItem(s)}
-                                    className="px-2 py-1 text-[10px] rounded border bg-white/5 border-white/5 text-text-muted hover:bg-white/10 hover:border-white/10 hover:text-white transition-all"
+                                    title={s}
+                                    className="px-2 py-1 text-[10px] rounded border bg-white/5 border-white/5 text-text-muted hover:bg-white/10 hover:border-white/10 hover:text-white transition-all max-w-[150px] truncate"
                                 >
                                     {s}
                                 </button>
