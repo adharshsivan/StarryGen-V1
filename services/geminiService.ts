@@ -1,5 +1,3 @@
-
-
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { BlockType, BlockState, SectionState } from "../types";
 import { BLOCK_DEFINITIONS } from "../constants";
@@ -478,6 +476,11 @@ export const constructPromptFromBlocks = (
                 fieldsDesc += `Depth: ${distLabel}, `;
                 return;
             }
+
+            if (fieldId === 'subject_size') {
+                 fieldsDesc += `Visual Scale: Subject occupies approx ${val}% of the image frame, `;
+                 return;
+            }
             
             if (fieldDef?.type === 'position-picker' && typeof val === 'object' && val.label) {
                 if (val.label === 'Center') {
@@ -684,24 +687,34 @@ export const generateImageFromBlocks = async (
   const structuredPrompt = constructPromptFromBlocks(blocks, baseStyle, useBaseStyle, globalBlocks, aspectRatio);
   
   let finalPrompt = "";
+  const activeBlocks = useBaseStyle ? [...globalBlocks, ...blocks] : blocks;
+  
+  // Check if we have active Reference Images
+  const hasReferenceImages = activeBlocks.some(b => b.isActive && b.referenceImage);
 
   if (previousImageBase64) {
       // Find the Background description to emphasize change
       let backgroundDescription = "Background as defined.";
-      const activeBlocks = useBaseStyle ? [...globalBlocks, ...blocks] : blocks;
       const bgBlock = activeBlocks.find(b => b.type === BlockType.BACKGROUND && b.isActive);
       if (bgBlock) {
-          // Manually constructing a summary of the background for the system prompt priority
           const env = bgBlock.sections['setting']?.fields['environment'] || '';
           const type = bgBlock.sections['setting']?.fields['type'] || '';
           const time = bgBlock.sections['setting']?.fields['time'] || '';
           backgroundDescription = `${type} ${env} at ${time}`;
       }
 
-      finalPrompt = `Edit the provided image to match this description: ${structuredPrompt}. 
+      let referenceInstruction = "1. Maintain the Subject Identity and Poses from the provided IMAGE TO EDIT (unless instructed otherwise).";
+      
+      // If we have explicit references, we need to instruct the model to prioritize those for identity
+      if (hasReferenceImages) {
+          referenceInstruction = "1. CRITICAL: For subjects with a 'REFERENCE IMAGE' provided above, you MUST prioritize the facial features, identity, and clothing of that REFERENCE IMAGE over the 'IMAGE TO EDIT'. Use the 'IMAGE TO EDIT' only for composition and pose, but swap the identity to match the REFERENCE IMAGE.";
+      }
+
+      finalPrompt = `Edit the provided 'IMAGE TO EDIT' to match this description: ${structuredPrompt}. 
       ${NEGATIVE_PROMPT}
-      CRITICAL INSTRUCTIONS:
-      1. Maintain the Subject Identity and Poses from the source image (unless instructed otherwise).
+      
+      INSTRUCTIONS:
+      ${referenceInstruction}
       2. REPLACE the Background/Environment if the text description differs from the image. The text description "${backgroundDescription}" takes PRIORITY over the image background.
       3. If the text says "Forest" and image is "City", make it a Forest.
       4. Apply the Visual Style defined.
@@ -715,20 +728,11 @@ export const generateImageFromBlocks = async (
     const finalAspectRatio = validAspectRatios.includes(aspectRatio) ? aspectRatio : "1:1";
 
     const contentParts: any[] = [];
-    let imagePartAdded = false;
-
+    
     // 1. ADD BLOCK VISUAL REFERENCES
     // This loops through active blocks and checks if they have a reference image attached.
     // If so, it passes that image to the model to ensure visual consistency.
-    let effectiveBlocks = [...blocks];
-    if (useBaseStyle && globalBlocks.length > 0) {
-         // Merge logic roughly duplicated from Editor to ensure references are caught
-         // Note: Logic simplification here assumes 'blocks' passed in is already the effective list, 
-         // but if not, we rely on the caller (Editor) to pass effective blocks or this loop
-         // captures explicit blocks. For safety, we iterate the passed `blocks`.
-    }
-
-    for (const block of blocks) {
+    for (const block of activeBlocks) {
         if (block.isActive && block.referenceImage) {
             let refData = block.referenceImage;
             let refMime = 'image/png';
@@ -749,8 +753,7 @@ export const generateImageFromBlocks = async (
                 contentParts.push({
                     inlineData: { mimeType: refMime, data: refData }
                 });
-                contentParts.push({ text: `Instruction: strictly maintain the visual characteristics (appearance, style, details) of the reference image above for the ${block.type} element.` });
-                imagePartAdded = true; 
+                contentParts.push({ text: `Instruction: strictly maintain the visual characteristics (identity, face, appearance) of the reference image above for the ${block.type} element.` });
             }
         }
     }
@@ -781,7 +784,6 @@ export const generateImageFromBlocks = async (
                     data: imageData
                 }
             });
-            imagePartAdded = true;
         }
     }
 
@@ -790,18 +792,10 @@ export const generateImageFromBlocks = async (
 
     const config: any = {
         seed: Math.floor(seed),
-    };
-
-    // Only allow aspect ratio setting if no images are passed (generation from scratch without refs)
-    // However, Gemini 2.5 Flash Image supports aspect ratio even with inputs generally, 
-    // but standard practice is often to omit it if doing image-to-image.
-    // We will leave it if previousImageBase64 is null, even if references exist, 
-    // because references are "hints", not the canvas itself.
-    if (!previousImageBase64) {
-        config.imageConfig = {
+        imageConfig: {
             aspectRatio: finalAspectRatio
-        };
-    }
+        }
+    };
 
     // Wrap the generation call in retry logic
     const response = await retryWithBackoff<GenerateContentResponse>(() => ai.models.generateContent({

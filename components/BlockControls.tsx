@@ -122,7 +122,10 @@ export const BlockControls: React.FC<BlockControlsProps> = ({
       if (newType === 'slider') newValue = 50;
       if (newType === 'color') newValue = '#000000';
       
-      updateCustomProperty(id, { type: newType, value: newValue });
+      const newCustomValues = (block.customValues || []).map(cp => 
+          cp.id === id ? { ...cp, type: newType, value: newValue } : cp
+      );
+      onChange({ ...block, customValues: newCustomValues });
   };
 
   const removeCustomProperty = (id: string) => {
@@ -231,7 +234,7 @@ export const BlockControls: React.FC<BlockControlsProps> = ({
             
             {/* Visual Reference Section */}
             {block.referenceImage && (
-                <div className="p-4 border-b border-white/5 bg-primary-500/5 relative group">
+                <div className="p-4 border-b border-white/5 bg-primary-500/5 relative group animate-fade-in">
                     <div className="flex items-center gap-2 mb-2">
                          <Icons.Link size={12} className="text-primary-400"/>
                          <Label className="mb-0 text-primary-300">Visual Reference Active</Label>
@@ -243,6 +246,7 @@ export const BlockControls: React.FC<BlockControlsProps> = ({
                         <div className="flex-1">
                              <p className="text-[10px] text-text-muted leading-tight mb-2">
                                  The AI is using this image to lock the appearance of this {block.type}.
+                                 <br/><span className="text-text-dim opacity-70">Changes you make below will modify this reference.</span>
                              </p>
                              <Button size="sm" variant="secondary" className="h-6 text-[10px]" onClick={handleRemoveReference}>
                                  <Icons.Trash2 size={10} /> Remove Reference
