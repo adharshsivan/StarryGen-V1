@@ -114,7 +114,8 @@ export const BLOCK_DEFINITIONS: Record<BlockType, BlockDefinition> = {
         defaultOpen: true,
         fields: [
              { id: 'frame_position', label: 'Frame Position', type: 'position-picker', defaultValue: { x: 50, y: 50, label: 'Center' } },
-             { id: 'subject_distance', label: 'Distance from Camera', type: 'slider', min: 0, max: 100, defaultValue: 30, unit: '%' }
+             // UPDATED DEFAULT: 50 (Mid-ground) instead of 30 (Foreground)
+             { id: 'subject_distance', label: 'Distance from Camera', type: 'slider', min: 0, max: 100, defaultValue: 50, unit: '%' }
         ]
       },
       // --- HUMAN SECTIONS ---

@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import * as Icons from 'lucide-react';
 
@@ -86,17 +85,36 @@ export const TabButton: React.FC<{ active: boolean; onClick: () => void; childre
     </button>
 );
 
-export const Toast: React.FC<{ message: string; onClose: () => void }> = ({ message, onClose }) => {
+export const Toast: React.FC<{ 
+    message: string; 
+    onClose: () => void;
+    action?: { label: string; onClick: () => void; }
+}> = ({ message, onClose, action }) => {
     useEffect(() => {
-        const timer = setTimeout(onClose, 3000);
+        const timer = setTimeout(onClose, 4000); // Increased duration slightly for Undo
         return () => clearTimeout(timer);
     }, [onClose]);
 
     return (
         <div className="fixed bottom-6 right-6 z-[110] animate-slide-up">
-            <div className="bg-surfaceHighlight border border-white/10 text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3">
-                <Icons.Info size={16} className="text-primary-400" />
-                <span className="text-sm font-medium">{message}</span>
+            <div className="bg-surfaceHighlight border border-white/10 text-white pl-4 pr-3 py-3 rounded-lg shadow-2xl flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                    <Icons.Info size={16} className="text-primary-400" />
+                    <span className="text-sm font-medium">{message}</span>
+                </div>
+                {action && (
+                    <button 
+                        onClick={action.onClick}
+                        className="text-xs font-bold text-primary-300 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded transition-colors"
+                    >
+                        {action.label}
+                    </button>
+                )}
+                {!action && (
+                     <button onClick={onClose} className="text-text-dim hover:text-white">
+                        <Icons.X size={14} />
+                    </button>
+                )}
             </div>
         </div>
     );

@@ -1,3 +1,5 @@
+
+
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { BlockType, BlockState, SectionState } from "../types";
 import { BLOCK_DEFINITIONS } from "../constants";
@@ -13,6 +15,9 @@ interface ParsedBlockData {
   type: string;
   sections: Record<string, ParsedSectionData>;
 }
+
+// --- Constants ---
+const NEGATIVE_PROMPT = "Avoid: text, watermark, signature, logo, split frame, multiple panels, blurry, low quality, deformed, bad anatomy, disfigured, cropped, extra limbs, mutation, missing limbs, floating limbs, disconnected limbs, malformed hands, blur, out of focus, long neck, long body, ugly, disgusting, poorly drawn, childish, cut off, cropped, frame, border.";
 
 // --- Helper Functions ---
 
@@ -475,7 +480,11 @@ export const constructPromptFromBlocks = (
             }
             
             if (fieldDef?.type === 'position-picker' && typeof val === 'object' && val.label) {
-                fieldsDesc += `Frame Position: ${val.label}, `;
+                if (val.label === 'Center') {
+                    fieldsDesc += `Position: Perfectly Centered in the middle of the frame, `;
+                } else {
+                    fieldsDesc += `Frame Position: ${val.label}, `;
+                }
                 return;
             }
 
@@ -677,14 +686,28 @@ export const generateImageFromBlocks = async (
   let finalPrompt = "";
 
   if (previousImageBase64) {
-      // Allow style transfer and heavy editing by not enforcing "exact" style match if prompt asks for something else.
-      finalPrompt = `Edit the provided image to match this description perfectly: ${structuredPrompt}. 
-      CRITICAL: Maintain the subject identity and composition from the source image.
-      However, APPLY the visual style (Art Style, Medium, Lighting) defined in the description above, even if it differs from the original image.
-      If the description says "Anime", make it Anime. If "Oil Painting", make it Oil Painting.
+      // Find the Background description to emphasize change
+      let backgroundDescription = "Background as defined.";
+      const activeBlocks = useBaseStyle ? [...globalBlocks, ...blocks] : blocks;
+      const bgBlock = activeBlocks.find(b => b.type === BlockType.BACKGROUND && b.isActive);
+      if (bgBlock) {
+          // Manually constructing a summary of the background for the system prompt priority
+          const env = bgBlock.sections['setting']?.fields['environment'] || '';
+          const type = bgBlock.sections['setting']?.fields['type'] || '';
+          const time = bgBlock.sections['setting']?.fields['time'] || '';
+          backgroundDescription = `${type} ${env} at ${time}`;
+      }
+
+      finalPrompt = `Edit the provided image to match this description: ${structuredPrompt}. 
+      ${NEGATIVE_PROMPT}
+      CRITICAL INSTRUCTIONS:
+      1. Maintain the Subject Identity and Poses from the source image (unless instructed otherwise).
+      2. REPLACE the Background/Environment if the text description differs from the image. The text description "${backgroundDescription}" takes PRIORITY over the image background.
+      3. If the text says "Forest" and image is "City", make it a Forest.
+      4. Apply the Visual Style defined.
       Render quality: Ultra-realistic, 8k.`;
   } else {
-      finalPrompt = `${structuredPrompt} \nRender quality: Ultra-realistic, 8k, highly detailed.`;
+      finalPrompt = `${structuredPrompt} \n${NEGATIVE_PROMPT} \nRender quality: Ultra-realistic, 8k, highly detailed.`;
   }
 
   try {

@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { BlockState, BlockDefinition, SectionState, BlockType, CustomProperty } from '../types';
 import { BLOCK_DEFINITIONS, createDefaultBlockState, getSmartLabel } from '../constants';
@@ -190,9 +189,9 @@ export const BlockControls: React.FC<BlockControlsProps> = ({
                             <Icons.Edit3 size={10} className="opacity-50" />
                         </h2>
                          {isGlobal && (
-                            <span className="text-[9px] font-bold text-primary-400 bg-primary-500/10 border border-primary-500/20 px-1.5 py-0.5 rounded ml-2">
-                                GLOBAL
-                            </span>
+                            <div className="w-5 h-5 rounded-full bg-primary-500/10 border border-primary-500/30 flex items-center justify-center ml-2" title="Global Master Block">
+                                <Icons.Globe size={12} className="text-primary-400" />
+                            </div>
                         )}
                     </div>
                 )}

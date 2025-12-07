@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Project, StarryFile, BlockType, BlockState, SectionState } from '../types';
 import * as Icons from 'lucide-react';
@@ -11,6 +12,8 @@ interface ProjectViewProps {
   onOpenFile: (file: StarryFile) => void;
   onUpdateProject: (p: Project) => void;
   onBack: () => void;
+  onDeleteFile?: (fileId: string) => void;
+  onDeleteProject?: () => void;
 }
 
 interface LibraryItem {
@@ -20,7 +23,7 @@ interface LibraryItem {
     sourcePreview?: string;
 }
 
-export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, onUpdateProject, onBack }) => {
+export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, onUpdateProject, onBack, onDeleteFile, onDeleteProject }) => {
   const [activeTab, setActiveTab] = useState('files');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newFileName, setNewFileName] = useState('');
@@ -145,13 +148,22 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
 
   const handleDeleteFile = (e: React.MouseEvent, fileId: string) => {
       e.stopPropagation();
-      if (confirm("Are you sure you want to delete this file? This cannot be undone.")) {
+      if (onDeleteFile) {
+          onDeleteFile(fileId);
+      } else if (confirm("Are you sure you want to delete this file? This cannot be undone.")) {
+          // Fallback if no prop provided
           const updatedFiles = project.files.filter(f => f.id !== fileId);
           onUpdateProject({
               ...project,
               files: updatedFiles
           });
           setToastMessage("File deleted");
+      }
+  };
+
+  const handleDeleteProject = () => {
+      if (confirm(`Are you sure you want to delete project "${project.name}"? This will delete all files inside it.`)) {
+          if (onDeleteProject) onDeleteProject();
       }
   };
 
@@ -509,7 +521,7 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
             </div>
         )}
 
-        {/* LIBRARY TAB - Refined Card Grid */}
+        {/* LIBRARY TAB - Simplified Grid */}
         {activeTab === 'library' && (
             <div className="p-8 h-full overflow-y-auto animate-fade-in">
                 <div className="max-w-7xl mx-auto space-y-8">
@@ -552,40 +564,37 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
                                 return (
                                     <div key={type} className="animate-slide-up">
                                         <div className="flex items-center gap-3 mb-4 pb-2 border-b border-white/5">
-                                            <div className={`p-1.5 rounded-md shadow-sm ${def.colorTheme.replace('bg-', 'bg-opacity-20 text-').replace('text-', 'bg-')} ${def.colorTheme.replace('bg-', 'text-')}`}>
+                                            <div className={`p-1.5 rounded-md shadow-sm ${def.colorTheme.replace('bg-', 'bg-opacity-20 text-').replace('text-', 'bg-')}`}>
                                                 {DefIcon && <DefIcon size={16} />}
                                             </div>
                                             <h3 className="text-sm font-bold text-white uppercase tracking-wider">{def.label}s</h3>
                                             <span className="text-[10px] text-text-dim bg-white/5 px-2 py-0.5 rounded-full border border-white/5">{filteredItems.length}</span>
                                         </div>
                                         
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                             {filteredItems.map((item, idx) => (
-                                                <div key={idx} className="bg-surface border border-white/5 rounded-lg overflow-hidden hover:border-white/10 hover:shadow-lg hover:-translate-y-0.5 transition-all group">
+                                                <div key={idx} className="bg-surface border border-white/5 rounded-lg overflow-hidden hover:border-white/10 hover:shadow-lg hover:-translate-y-0.5 transition-all group flex flex-col">
                                                     {/* Header Strip */}
                                                     <div className={`h-1 w-full ${def.colorTheme}`} />
                                                     
-                                                    <div className="p-4">
-                                                        <div className="flex justify-between items-start mb-3">
+                                                    <div className="p-3 flex-1 flex flex-col">
+                                                        <div className="flex justify-between items-start mb-2">
                                                             <div className="font-bold text-sm text-white truncate pr-2 flex items-center gap-2">
                                                                 {getSmartLabel(item.block)}
                                                                 {item.sourceFileId === 'global' && <Icons.Globe size={10} className="text-primary-400" />}
                                                             </div>
-                                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <button className="text-text-dim hover:text-white"><Icons.MoreHorizontal size={14}/></button>
-                                                            </div>
                                                         </div>
                                                         
-                                                        <div className="space-y-1.5 mb-4">
-                                                             {/* Mini Key-Value Display for quick context */}
-                                                            {Object.entries(item.block.sections).slice(0, 2).map(([secId, sec]) => {
+                                                        <div className="space-y-1 mb-3 flex-1">
+                                                             {/* Minimal Metadata */}
+                                                            {Object.entries(item.block.sections).slice(0, 3).map(([secId, sec]) => {
                                                                 // Grab first non-empty field
                                                                 const firstField = Object.entries(sec.fields).find(([k,v]) => v && v !== 'None' && v !== false);
                                                                 if(!firstField) return null;
                                                                 return (
-                                                                    <div key={secId} className="flex items-center justify-between text-[10px]">
+                                                                    <div key={secId} className="flex items-center justify-between text-[10px] border-b border-white/5 pb-0.5 last:border-0">
                                                                         <span className="text-text-dim capitalize">{firstField[0].replace('_', ' ')}</span>
-                                                                        <span className="text-text-muted truncate max-w-[100px] text-right">
+                                                                        <span className="text-text-muted truncate max-w-[80px] text-right">
                                                                             {Array.isArray(firstField[1]) ? `[${firstField[1].length}]` : String(firstField[1])}
                                                                         </span>
                                                                     </div>
@@ -593,17 +602,11 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
                                                             })}
                                                         </div>
 
-                                                        {item.sourcePreview && (
-                                                            <div className="mb-3 h-16 w-full rounded bg-black/40 overflow-hidden relative border border-white/5" title="Has visual reference">
-                                                                <img src={item.sourcePreview} className="w-full h-full object-cover opacity-60 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all" alt={getSmartLabel(item.block)} />
-                                                            </div>
-                                                        )}
-                                                        
-                                                        <div className="flex gap-2 mt-4 pt-4 border-t border-white/5">
-                                                            <Button size="sm" variant="secondary" className="flex-1 h-8 text-xs" onClick={() => initiateAddTo(item.block, item.sourcePreview)}>
+                                                        <div className="flex gap-2 mt-auto pt-2 border-t border-white/5">
+                                                            <Button size="sm" variant="secondary" className="flex-1 h-7 text-xs" onClick={() => initiateAddTo(item.block, item.sourcePreview)}>
                                                                 Add
                                                             </Button>
-                                                            <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => initiateEditAndAdd(item.block, item.sourcePreview)}>
+                                                            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => initiateEditAndAdd(item.block, item.sourcePreview)}>
                                                                 <Icons.Edit3 size={12} />
                                                             </Button>
                                                         </div>
@@ -636,7 +639,10 @@ export const ProjectView: React.FC<ProjectViewProps> = ({ project, onOpenFile, o
                              <Label>Description</Label>
                              <Textarea value={settingsDesc} onChange={(e) => setSettingsDesc(e.target.value)} rows={3} />
                          </div>
-                         <div className="pt-4 border-t border-white/5 flex justify-end">
+                         <div className="pt-4 border-t border-white/5 flex justify-between items-center">
+                             <Button variant="danger" size="sm" onClick={handleDeleteProject}>
+                                 <Icons.Trash2 size={14} /> Delete Project
+                             </Button>
                              <Button onClick={handleSaveSettings}>Save Changes</Button>
                          </div>
                      </div>

@@ -225,7 +225,7 @@ export const Editor: React.FC<EditorProps> = ({
         return;
     }
     setIsDirty(true);
-  }, [blocks, generatedImage, fileName, aspectRatio, baseStyle, useBaseStyle, roughIdea, dynamicSuggestions, seed, history, labsState]);
+  }, [blocks, generatedImage, fileName, aspectRatio, baseStyle, useBaseStyle, roughIdea, seed, labsState]);
 
   const handleSave = () => {
       // Uniqueness check for file name

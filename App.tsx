@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Project, StarryFile, BlockType, BlockState } from './types';
 import { INITIAL_PROJECTS, createDefaultBlockState } from './constants';
@@ -31,6 +30,9 @@ export default function App() {
   const [customApiKey, setCustomApiKey] = useState('');
   const [hasEffectiveKey, setHasEffectiveKey] = useState(!!getEffectiveApiKey());
   const [apiToastMessage, setApiToastMessage] = useState<string | null>(null);
+  
+  // Undo State
+  const [toastAction, setToastAction] = useState<{ label: string, onClick: () => void } | undefined>(undefined);
 
   useEffect(() => {
     // Check key status on mount
@@ -53,6 +55,7 @@ export default function App() {
 
   const handleCloseToast = useCallback(() => {
     setApiToastMessage(null);
+    setToastAction(undefined);
   }, []);
 
   // Handlers
@@ -76,12 +79,58 @@ export default function App() {
 
   const deleteFileFromProject = (fileId: string) => {
     if (!currentProject) return;
+    
+    // Store previous state for undo
+    const previousProjectState = { ...currentProject };
+    const previousProjectsState = [...projects];
+
+    // Optimistic Update
     const updatedFiles = currentProject.files.filter(f => f.id !== fileId);
     const updatedProject = { ...currentProject, files: updatedFiles, lastModified: Date.now() };
+    
     setCurrentProject(updatedProject);
     setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p));
-    setCurrentFile(null);
-    setView('project');
+    if (currentFile && currentFile.id === fileId) setCurrentFile(null);
+    
+    // Show Undo Toast
+    setApiToastMessage("File deleted.");
+    setToastAction({
+        label: "Undo",
+        onClick: () => {
+            setCurrentProject(previousProjectState);
+            setProjects(previousProjectsState);
+            setApiToastMessage("Deletion undone.");
+            setToastAction(undefined);
+        }
+    });
+
+    if (view === 'editor') setView('project');
+  };
+
+  const deleteProject = (projectId: string) => {
+      // Store previous state
+      const previousProjects = [...projects];
+      const projectToDelete = projects.find(p => p.id === projectId);
+      
+      // Optimistic Update
+      const updatedProjects = projects.filter(p => p.id !== projectId);
+      setProjects(updatedProjects);
+      
+      if (currentProject && currentProject.id === projectId) {
+          setCurrentProject(null);
+          setView('dashboard');
+      }
+
+      setApiToastMessage(`Project "${projectToDelete?.name}" deleted.`);
+      setToastAction({
+          label: "Undo",
+          onClick: () => {
+              setProjects(previousProjects);
+              if (projectToDelete) setCurrentProject(projectToDelete); // Optional: restore view
+              setApiToastMessage("Project restored.");
+              setToastAction(undefined);
+          }
+      });
   };
 
   const updateProject = (updatedProject: Project) => {
@@ -244,19 +293,23 @@ export default function App() {
             project={currentProject} 
             onOpenFile={openFile} 
             onUpdateProject={updateProject}
-            onBack={() => setView('dashboard')} 
+            onBack={() => setView('dashboard')}
+            onDeleteFile={deleteFileFromProject}
+            onDeleteProject={() => deleteProject(currentProject.id)}
         />
     );
   }
 
   return (
     <div className="min-h-screen bg-background text-text-main font-sans selection:bg-primary-500/30 selection:text-white transition-colors duration-300">
-      {apiToastMessage && <Toast message={apiToastMessage} onClose={handleCloseToast} />}
+      {apiToastMessage && <Toast message={apiToastMessage} onClose={handleCloseToast} action={toastAction} />}
 
       {/* Navbar */}
       <nav className="h-16 border-b border-border flex items-center justify-between px-8 bg-surface/80 backdrop-blur fixed top-0 w-full z-50">
-        <div className="flex items-center gap-3">
-            <span className="font-bold text-lg tracking-tight text-text-main">StarryGen</span>
+        <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold tracking-tight text-white cursor-pointer" onClick={() => setView('dashboard')}>
+                StarryGen
+            </h1>
         </div>
         <div className="w-1/3">
              <div className="relative group">
@@ -275,20 +328,19 @@ export default function App() {
              <button 
                 onClick={() => setIsApiKeyModalOpen(true)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/5 bg-black/20 hover:bg-white/5 hover:border-white/20 transition-all group"
-                title={hasEffectiveKey ? "API Key Active" : "Missing API Key"}
+                title={hasEffectiveKey ? "API Active" : "Missing API Key"}
              >
                  <div className={`w-2 h-2 rounded-full ${hasEffectiveKey ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
                  <span className={`text-[10px] font-medium ${hasEffectiveKey ? 'text-text-muted group-hover:text-text-main' : 'text-red-400'}`}>
-                    {hasEffectiveKey ? 'System Ready' : 'Key Missing'}
+                    {hasEffectiveKey ? 'API Active' : 'Key Missing'}
                  </span>
                  <Icons.Settings2 size={12} className="text-text-dim group-hover:text-text-main" />
              </button>
 
              {/* Documentation Button (Replaces Profile Icon) */}
              <button 
-                onClick={() => setIsDocsModalOpen(true)}
-                className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-bold hover:bg-primary-400 transition-colors shadow-lg shadow-primary-500/20 cursor-pointer ring-2 ring-transparent hover:ring-primary-500/30"
-                title="Documentation & About StarryGen"
+                className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-bold hover:bg-primary-400 transition-colors shadow-lg shadow-primary-500/20 cursor-default ring-2 ring-transparent hover:ring-primary-500/30"
+                title="User Profile"
              >
                  SG
              </button>
